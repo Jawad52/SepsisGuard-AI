@@ -97,7 +97,7 @@ SepsisGuard is an AI-powered, real-time sepsis early warning system designed for
 
 ```bash
 # 1. Clone
-git clone https://github.com/yourteam/sepsisguard
+git [clone https://github.com/yourteam/sepsisguard](https://github.com/Jawad52/SepsisGuard-AI.git)
 
 # 2. Frontend (standalone HTML — no build required for demo)
 open sepsisguard.html  # Works immediately in any browser
