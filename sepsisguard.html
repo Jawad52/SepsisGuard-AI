@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SepsisGuard AI — Early Warning System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1526;
+    --bg3: #141c30;
+    --surface: #1a2340;
+    --surface2: #1f2a4a;
+    --border: rgba(99,143,255,0.15);
+    --border2: rgba(99,143,255,0.25);
+    --accent: #4f8cff;
+    --accent2: #7eb8ff;
+    --danger: #ff5757;
+    --warning: #ffb347;
+    --success: #3fcf8e;
+    --text: #e8efff;
+    --text2: #8fa4cc;
+    --text3: #4d6899;
+    --font-main: 'Outfit', sans-serif;
+    --font-display: 'DM Serif Display', serif;
+    --font-mono: 'DM Mono', monospace;
+    --r: 10px;
+    --r2: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow-y: auto;
+  }
+
+  .logo {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .logo-icon {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg { width: 18px; height: 18px; fill: #fff; }
+
+  .logo-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .logo-tag {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding-left: 40px;
+  }
+
+  .nav { padding: 12px 10px; flex: 1; }
+
+  .nav-section-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-weight: 600;
+    padding: 10px 10px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--r);
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover { background: var(--surface); color: var(--text); }
+  .nav-item.active { background: var(--surface2); color: var(--accent2); font-weight: 500; }
+
+  .nav-item .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 20px;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .nav-badge.warning { background: var(--warning); color: #1a1000; }
+  .nav-badge.ok { background: var(--success); color: #001a0d; }
+
+  .sidebar-footer {
+    padding: 14px 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .user-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r);
+  }
+
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f8cff, #7e5ff5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: #fff;
+    flex-shrink: 0;
+  }
+
+  .user-info { min-width: 0; }
+  .user-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 10px; color: var(--text3); }
+
+  /* ─── MAIN CONTENT ─── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    height: 56px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .topbar-title { font-size: 16px; font-weight: 500; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--text3); }
+
+  .topbar-spacer { flex: 1; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .status-pill.live { background: rgba(63,207,142,0.12); color: var(--success); border: 1px solid rgba(63,207,142,0.3); }
+  .status-pill.warning { background: rgba(255,179,71,0.12); color: var(--warning); border: 1px solid rgba(255,179,71,0.3); }
+
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ─── PAGES ─── */
+  .page { display: none; }
+  .page.active { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ─── ALERT BANNER ─── */
+  .alert-banner {
+    background: rgba(255,87,87,0.1);
+    border: 1px solid rgba(255,87,87,0.35);
+    border-radius: var(--r);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .alert-icon { color: var(--danger); font-size: 18px; flex-shrink: 0; }
+  .alert-text strong { color: var(--danger); font-size: 13px; }
+  .alert-text span { color: var(--text2); font-size: 12px; display: block; }
+
+  .alert-action {
+    margin-left: auto;
+    padding: 6px 14px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: var(--font-main);
+  }
+
+  /* ─── STATS ROW ─── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.danger::before { background: var(--danger); }
+  .stat-card.warning::before { background: var(--warning); }
+  .stat-card.success::before { background: var(--success); }
+  .stat-card.info::before { background: var(--accent); }
+
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 6px; }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.warning { color: var(--warning); }
+  .stat-value.success { color: var(--success); }
+  .stat-delta { font-size: 11px; color: var(--text3); }
+  .stat-delta .up { color: var(--danger); }
+  .stat-delta .down { color: var(--success); }
+
+  /* ─── PATIENT TABLE ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .card-sub { font-size: 12px; color: var(--text3); margin-left: auto; }
+
+  .filter-tabs { display: flex; gap: 6px; margin-left: auto; }
+  .tab {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text2);
+    font-family: var(--font-main);
+    transition: all 0.15s;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tab:hover:not(.active) { background: var(--surface2); }
+
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 13px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .risk-badge.critical { background: rgba(255,87,87,0.15); color: var(--danger); border: 1px solid rgba(255,87,87,0.3); }
+  .risk-badge.high { background: rgba(255,179,71,0.15); color: var(--warning); border: 1px solid rgba(255,179,71,0.3); }
+  .risk-badge.moderate { background: rgba(79,140,255,0.15); color: var(--accent2); border: 1px solid rgba(79,140,255,0.3); }
+  .risk-badge.low { background: rgba(63,207,142,0.12); color: var(--success); border: 1px solid rgba(63,207,142,0.3); }
+
+  .score-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .score-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  .score-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .score-num { font-size: 12px; font-weight: 500; min-width: 28px; text-align: right; }
+
+  .action-btn {
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--accent2);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: all 0.15s;
+  }
+  .action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .vital { font-family: var(--font-mono); font-size: 12px; }
+  .vital.abnormal { color: var(--danger); }
+  .vital.warn { color: var(--warning); }
+  .vital.ok { color: var(--success); }
+
+  /* ─── TWO-COL ─── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .three-col { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+
+  /* ─── CHART CARD ─── */
+  .chart-body { padding: 20px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ─── AI PANEL ─── */
+  .ai-panel { display: flex; flex-direction: column; gap: 0; }
+
+  .ai-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ai-badge {
+    padding: 3px 8px;
+    background: rgba(126,91,245,0.2);
+    color: #b89fff;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(126,91,245,0.3);
+  }
+
+  .ai-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; max-height: 380px; }
+
+  .ai-msg {
+    display: flex;
+    gap: 10px;
+    animation: fadeUp 0.2s ease;
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .ai-msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .msg-avatar.ai { background: linear-gradient(135deg, #4f8cff, #7e5ff5); color: #fff; }
+  .msg-avatar.user { background: var(--surface2); color: var(--text2); }
+
+  .msg-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .msg-bubble.ai { background: var(--surface2); color: var(--text); border-radius: 4px 12px 12px 12px; }
+  .msg-bubble.user { background: var(--accent); color: #fff; border-radius: 12px 4px 12px 12px; }
+
+  .msg-bubble .highlight { color: var(--danger); font-weight: 500; }
+  .msg-bubble .ok { color: var(--success); }
+
+  .ai-input-row {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+
+  .ai-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-main);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .ai-input:focus { border-color: var(--accent); }
+  .ai-input::placeholder { color: var(--text3); }
+
+  .ai-send {
+    padding: 9px 18px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .ai-send:hover { background: #3a75ff; }
+  .ai-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .typing { display: flex; gap: 4px; align-items: center; padding: 12px 0; }
+  .typing span { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  /* ─── PATIENT DETAIL ─── */
+  .detail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    display: none;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .detail-panel.visible { display: flex; }
+
+  .vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px 20px; }
+
+  .vital-tile {
+    background: var(--bg3);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+  }
+
+  .vital-tile-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+  .vital-tile-value { font-size: 20px; font-weight: 600; font-family: var(--font-mono); }
+  .vital-tile-unit { font-size: 10px; color: var(--text3); font-family: var(--font-main); }
+  .vital-tile.danger .vital-tile-value { color: var(--danger); }
+  .vital-tile.warning .vital-tile-value { color: var(--warning); }
+  .vital-tile.ok .vital-tile-value { color: var(--success); }
+  .vital-tile.neutral .vital-tile-value { color: var(--text); }
+
+  /* ─── TREND MINI ─── */
+  .trend-canvas { width: 100%; height: 60px; }
+
+  /* ─── RISK GAUGE ─── */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  .gauge-number { font-size: 48px; font-weight: 700; font-family: var(--font-mono); }
+  .gauge-label { font-size: 13px; color: var(--text2); }
+
+  /* ─── ANALYTICS PAGE ─── */
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ─── SETTINGS / DEMO ─── */
+  .demo-notice {
+    background: rgba(79,140,255,0.08);
+    border: 1px solid rgba(79,140,255,0.25);
+    border-radius: var(--r);
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--accent2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .section-sub { font-size: 13px; color: var(--text3); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .three-col, .analytics-grid { grid-template-columns: 1fr; }
+    .vitals-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ─── SOFA SCORE PAGE ─── */
+  .sofa-form { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; }
+  .form-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .sofa-result {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .sofa-score-box {
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .sofa-score-num {
+    font-size: 40px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .calc-btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-main);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <span class="logo-name">SepsisGuard</span>
+      </div>
+      <div class="logo-tag">AI Early Warning System</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Monitoring</div>
+      <button class="nav-item active" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Dashboard
+        <span class="nav-badge" id="badge-critical">3</span>
+      </button>
+      <button class="nav-item" onclick="showPage('patients')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Patients
+        <span class="nav-badge warning">12</span>
+      </button>
+      <button class="nav-item" onclick="showPage('alerts')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        Alerts
+        <span class="nav-badge" id="badge-alerts">5</span>
+      </button>
+      <button class="nav-item" onclick="showPage('analytics')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        Analytics
+      </button>
+
+      <div class="nav-section-label" style="margin-top: 10px;">Clinical Tools</div>
+      <button class="nav-item" onclick="showPage('sofa')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        SOFA Calculator
+      </button>
+      <button class="nav-item" onclick="showPage('ai')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>
+        AI Assistant
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar">DR</div>
+        <div class="user-info">
+          <div class="user-name">Dr. Reyes</div>
+          <div class="user-role">ICU — Ward 3</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Patient Dashboard</div>
+        <div class="topbar-sub" id="page-sub">Real-time sepsis risk monitoring</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="status-pill live"><div class="dot"></div>Live · 47 patients</div>
+      <div class="status-pill warning"><div class="dot"></div>3 Critical</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════════════════════════ DASHBOARD PAGE ═══════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <div class="demo-notice">
+          ⚡ Demo mode — all vitals and AI responses use realistic simulated data. No real patient data is stored.
+        </div>
+
+        <div class="alert-banner">
+          <span class="alert-icon">⚠</span>
+          <div class="alert-text">
+            <strong>CRITICAL: Patient 004 — Sarah Chen — Sepsis probability 94%</strong>
+            <span>Lactate ↑ 4.2 mmol/L · HR 128 · Temp 38.9°C · MAP 62 mmHg — Immediate review required</span>
+          </div>
+          <button class="alert-action" onclick="viewPatient('P004')">View Patient</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card danger">
+            <div class="stat-label">Critical Risk</div>
+            <div class="stat-value danger">3</div>
+            <div class="stat-delta">Sepsis prob. &gt; 80% — <span class="up">↑ 2 this shift</span></div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-label">High Risk</div>
+            <div class="stat-value warning">8</div>
+            <div class="stat-delta">Sepsis prob. 50–80% — <span class="up">↑ 3 this shift</span></div>
+          </div>
+          <div class="stat-card info">
+            <div class="stat-label">Monitored</div>
+            <div class="stat-value">36</div>
+            <div class="stat-delta">Low / moderate risk</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-label">Avg. Detection Lead</div>
+            <div class="stat-value success">4.2h</div>
+            <div class="stat-delta"><span class="down">↓ 37% mortality</span> vs baseline</div>
+          </div>
+        </div>
+
+        <div class="three-col">
+          <!-- Patient Table -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">High-Priority Patients</span>
+              <div class="filter-tabs">
+                <button class="tab active" onclick="filterTable('all',this)">All</button>
+                <button class="tab" onclick="filterTable('critical',this)">Critical</button>
+                <button class="tab" onclick="filterTable('high',this)">High</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="patient-table">
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Risk</th>
+                    <th>Score</th>
+                    <th>HR</th>
+                    <th>Temp</th>
+                    <th>MAP</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="patient-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Alert Timeline -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Today's Alerts</span>
+              <span class="card-sub" id="alert-time">Updated just now</span>
+            </div>
+            <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 8px;" id="alert-list"></div>
+          </div>
+        </div>
+
+        <!-- Vitals Trend Chart -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Ward Sepsis Risk Trend — Last 24h</span>
+            <span class="card-sub">Patients flagged by AI model per hour</span>
+          </div>
+          <div class="chart-body">
+            <div class="chart-wrap" style="height: 200px;">
+              <canvas id="trendChart" role="img" aria-label="Line chart showing sepsis risk alerts over 24 hours"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════ PATIENTS PAGE ═══════════════════════════════ -->
+      <div class="page" id="page-patients">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+          <div>
+            <div class="section-title">All Patients</div>
+            <div class="section-sub">Real-time vitals &amp; AI risk scores for 47 monitored patients</div>
+          </div>
+        </div>
+
+        <div class="card" id="patient-detail-card" style="display:none;">
+          <div class="card-header" id="detail-header">
+            <span class="card-title">Patient Detail</span>
+            <button class="action-btn" onclick="closeDetail()" style="margin-left:auto;">Close ✕</button>
+          </div>
+          <div class="vitals-grid" id="detail-vitals"></div>
+          <div style="padding: 0 20px 16px;">
+            <div style="font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px;">Vital Trends — Last 6h</div>
+            <div class="chart-wrap" style="height: 120px;">
+              <canvas id="detailChart" role="img" aria-label="Patient vital trend chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Patient Roster</span>
+            <span class="card-sub">Click any row for detailed vitals</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient</th>
+                  <th>Age</th>
+                  <th>Ward</th>
+                  <th>Diagnosis</th>
+                  <th>AI Risk</th>
+                  <th>qSOFA</th>
+                  <th>Last Updated</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="full-patient-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════ ALERTS PAGE ═══════════════════════════════ -->
+      <div class="page" id="page-alerts">
+        <div class="section-title">Alert Center</div>
+        <div class="section-sub" style="margin-bottom: 10px;">AI-generated clinical alerts, ranked by urgency</div>
+
+        <div class="stats-row">
+          <div class="stat-card danger"><div class="stat-label">Critical</div><div class="stat-value danger">3</div></div>
+          <div class="stat-card warning"><div class="stat-label">High</div><div class="stat-value warning">8</div></div>
+          <div class="stat-card info"><div class="stat-label">Acknowledged</div><div class="stat-value">14</div></div>
+          <div class="stat-card success"><div class="stat-label">Resolved (24h)</div><div class="stat-value success">22</div></div>
+        </div>
+
+        <div class="card" id="alerts-list-card">
+          <div class="card-header"><span class="card-title">Active Alerts</span></div>
+          <div id="alerts-full-list" style="padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════ ANALYTICS PAGE ═══════════════════════════════ -->
+      <div class="page" id="page-analytics">
+        <div class="section-title">Analytics</div>
+        <div class="section-sub" style="margin-bottom: 10px;">Model performance, outcomes, and operational metrics</div>
+
+        <div class="stats-row">
+          <div class="stat-card success"><div class="stat-label">Model Sensitivity</div><div class="stat-value success">94%</div><div class="stat-delta">True positive rate</div></div>
+          <div class="stat-card success"><div class="stat-label">Specificity</div><div class="stat-value success">91%</div><div class="stat-delta">True negative rate</div></div>
+          <div class="stat-card info"><div class="stat-label">Avg Alert Lead Time</div><div class="stat-value">4.2h</div><div class="stat-delta">Before clinical criteria</div></div>
+          <div class="stat-card danger"><div class="stat-label">30-Day Mortality</div><div class="stat-value danger">14%</div><div class="stat-delta"><span class="down">↓ 37% vs. 22% baseline</span></div></div>
+        </div>
+
+        <div class="analytics-grid">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Sepsis Risk Distribution</span></div>
+            <div class="chart-body">
+              <div class="chart-wrap" style="height: 220px;">
+                <canvas id="riskDistChart" role="img" aria-label="Doughnut chart of patient risk distribution"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Weekly Detections</span></div>
+            <div class="chart-body">
+              <div class="chart-wrap" style="height: 220px;">
+                <canvas id="weeklyChart" role="img" aria-label="Bar chart of weekly sepsis detections"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Alert Lead Time (hours)</span></div>
+            <div class="chart-body">
+              <div class="chart-wrap" style="height: 200px;">
+                <canvas id="leadTimeChart" role="img" aria-label="Histogram of alert lead times"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Model Accuracy Over Time</span></div>
+            <div class="chart-body">
+              <div class="chart-wrap" style="height: 200px;">
+                <canvas id="accuracyChart" role="img" aria-label="Line chart of model accuracy over 12 months"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════ SOFA CALCULATOR PAGE ═══════════════════════════════ -->
+      <div class="page" id="page-sofa">
+        <div class="section-title">SOFA Score Calculator</div>
+        <div class="section-sub" style="margin-bottom: 10px;">Sequential Organ Failure Assessment — AI-assisted interpretation</div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Input Vitals &amp; Labs</span></div>
+            <div class="sofa-form" id="sofa-form">
+              <div class="form-group">
+                <label class="form-label">PaO₂/FiO₂ (mmHg)</label>
+                <input class="form-input" id="sf-pao2" type="number" placeholder="e.g. 320" value="210">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Platelets (×10³/μL)</label>
+                <input class="form-input" id="sf-plt" type="number" placeholder="e.g. 150" value="98">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bilirubin (mg/dL)</label>
+                <input class="form-input" id="sf-bili" type="number" placeholder="e.g. 1.2" value="2.8">
+              </div>
+              <div class="form-group">
+                <label class="form-label">MAP (mmHg)</label>
+                <input class="form-input" id="sf-map" type="number" placeholder="e.g. 70" value="62">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Glasgow Coma Scale</label>
+                <input class="form-input" id="sf-gcs" type="number" placeholder="3–15" value="13">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Creatinine (mg/dL)</label>
+                <input class="form-input" id="sf-creat" type="number" placeholder="e.g. 1.1" value="2.4">
+              </div>
+            </div>
+            <div style="padding: 0 20px 20px;">
+              <button class="calc-btn" onclick="calcSOFA()">Calculate SOFA Score →</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">SOFA Score &amp; AI Interpretation</span></div>
+            <div class="sofa-result" id="sofa-result" style="flex-direction: column; align-items: flex-start; gap: 14px; min-height: 200px;">
+              <div style="color: var(--text3); font-size: 13px; padding: 10px 0;">Enter patient values and click Calculate.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════ AI ASSISTANT PAGE ═══════════════════════════════ -->
+      <div class="page" id="page-ai">
+        <div class="section-title">AI Clinical Assistant</div>
+        <div class="section-sub" style="margin-bottom: 10px;">Ask about any patient, interpret lab values, or get evidence-based recommendations</div>
+
+        <div class="demo-notice" style="margin-bottom: 6px;">
+          🤖 Powered by Claude via Anthropic API — responses are AI-generated and for educational purposes only. Always verify with clinical judgment.
+        </div>
+
+        <div class="card ai-panel">
+          <div class="ai-header">
+            <span style="font-size: 13px; font-weight: 500;">Clinical AI Assistant</span>
+            <span class="ai-badge">CLAUDE · BETA</span>
+            <span style="font-size: 11px; color: var(--text3); margin-left: auto;">Not a substitute for clinical judgment</span>
+          </div>
+          <div class="ai-messages" id="ai-messages">
+            <div class="ai-msg">
+              <div class="msg-avatar ai">AI</div>
+              <div class="msg-bubble ai">
+                Hello Dr. Reyes. I'm your AI clinical assistant. I can help you interpret vitals, review lab trends, explain SOFA scores, or discuss sepsis management protocols. How can I help?
+              </div>
+            </div>
+            <div class="ai-msg">
+              <div class="msg-avatar ai">AI</div>
+              <div class="msg-bubble ai">
+                <span class="highlight">⚠ Alert:</span> Patient Sarah Chen (P004) has a <span class="highlight">94% sepsis probability</span>. Lactate 4.2 mmol/L, HR 128, MAP 62 mmHg. Would you like me to run a full risk analysis?
+              </div>
+            </div>
+          </div>
+          <div class="ai-input-row">
+            <input class="ai-input" id="ai-input" placeholder="Ask about a patient, lab value, or protocol..." onkeydown="if(event.key==='Enter')sendAI()">
+            <button class="ai-send" id="ai-send-btn" onclick="sendAI()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════ DATA ═══════════════════════════════
+
+const PATIENTS = [
+  { id:'P001', name:'James Okonkwo',  age:67, ward:'ICU-A', dx:'Post-op abdominal', risk:'critical', prob:88, hr:118, temp:38.7, map:65, lactate:3.1, plt:110, creat:1.9, gcs:14, wbc:14.2, qsofa:2, updated:'2 min ago' },
+  { id:'P002', name:'Maria Santos',   age:54, ward:'ICU-B', dx:'Pneumonia',          risk:'high',     prob:71, hr:104, temp:38.2, map:72, lactate:2.1, plt:145, creat:1.3, gcs:15, wbc:12.8, qsofa:2, updated:'5 min ago' },
+  { id:'P003', name:'Robert Kim',     age:78, ward:'ICU-A', dx:'UTI / AMS',          risk:'high',     prob:64, hr:98,  temp:37.9, map:76, lactate:1.8, plt:180, creat:2.1, gcs:14, wbc:11.2, qsofa:1, updated:'8 min ago' },
+  { id:'P004', name:'Sarah Chen',     age:42, ward:'ICU-C', dx:'Bowel obstruction',  risk:'critical', prob:94, hr:128, temp:38.9, map:62, lactate:4.2, plt:88,  creat:2.8, gcs:13, wbc:16.1, qsofa:3, updated:'Just now' },
+  { id:'P005', name:'Emmanuel Diop',  age:61, ward:'Ward-2',dx:'COPD exacerbation',  risk:'moderate', prob:38, hr:92,  temp:37.4, map:82, lactate:1.2, plt:210, creat:1.0, gcs:15, wbc:9.8,  qsofa:1, updated:'12 min ago' },
+  { id:'P006', name:'Anya Patel',     age:35, ward:'Ward-1',dx:'Appendectomy',       risk:'low',      prob:12, hr:78,  temp:37.1, map:88, lactate:0.8, plt:280, creat:0.8, gcs:15, wbc:8.2,  qsofa:0, updated:'15 min ago' },
+  { id:'P007', name:'Carlos Mendez',  age:55, ward:'ICU-B', dx:'Pancreatitis',       risk:'critical', prob:82, hr:115, temp:38.5, map:68, lactate:3.4, plt:102, creat:2.2, gcs:14, wbc:15.0, qsofa:2, updated:'1 min ago' },
+  { id:'P008', name:'Fatima Al-Rashid',age:49,ward:'Ward-3',dx:'Cellulitis',         risk:'low',      prob:8,  hr:74,  temp:37.3, map:91, lactate:0.6, plt:320, creat:0.7, gcs:15, wbc:7.9,  qsofa:0, updated:'20 min ago' },
+  { id:'P009', name:'David Nguyen',   age:72, ward:'ICU-A', dx:'AKI / Urosepsis',   risk:'high',     prob:76, hr:108, temp:38.4, map:70, lactate:2.6, plt:125, creat:3.1, gcs:15, wbc:13.5, qsofa:2, updated:'3 min ago' },
+  { id:'P010', name:'Grace Obi',      age:58, ward:'Ward-2',dx:'Cholangitis',        risk:'moderate', prob:45, hr:95,  temp:37.7, map:79, lactate:1.5, plt:165, creat:1.4, gcs:15, wbc:10.8, qsofa:1, updated:'10 min ago' },
+];
+
+const ALERTS = [
+  { time:'08:42', patient:'Sarah Chen (P004)', level:'critical', msg:'Sepsis probability crossed 90% threshold. Lactate rising: 2.1 → 4.2 mmol/L in 3h.' },
+  { time:'08:18', patient:'Carlos Mendez (P007)', level:'critical', msg:'New organ dysfunction detected. Creatinine ↑ 1.4→2.2 in 6h. MAP dropping.' },
+  { time:'07:55', patient:'James Okonkwo (P001)', level:'critical', msg:'qSOFA score 2. HR and temperature trending up over last 4 hours.' },
+  { time:'07:32', patient:'David Nguyen (P009)', level:'high', msg:'Sepsis probability increased from 48% to 76%. Urine output < 0.5 mL/kg/h.' },
+  { time:'06:50', patient:'Maria Santos (P002)', level:'high', msg:'Respiratory rate 26/min. PaO2/FiO2 ratio declining — monitor closely.' },
+];
+
+// ═══════════════════════════════ NAVIGATION ═══════════════════════════════
+
+const PAGE_META = {
+  dashboard: { title:'Patient Dashboard', sub:'Real-time sepsis risk monitoring' },
+  patients:  { title:'All Patients', sub:'Full patient roster with live vitals' },
+  alerts:    { title:'Alert Center', sub:'AI-generated clinical alerts' },
+  analytics: { title:'Analytics', sub:'Model performance and outcomes' },
+  sofa:      { title:'SOFA Calculator', sub:'AI-assisted organ failure assessment' },
+  ai:        { title:'AI Assistant', sub:'Evidence-based clinical support' },
+};
+
+let chartsInit = {};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active');
+  });
+  const m = PAGE_META[name];
+  document.getElementById('page-title').textContent = m.title;
+  document.getElementById('page-sub').textContent = m.sub;
+
+  if(name === 'analytics' && !chartsInit.analytics) { initAnalyticsCharts(); chartsInit.analytics = true; }
+  if(name === 'dashboard' && !chartsInit.dashboard) { initDashboardChart(); chartsInit.dashboard = true; }
+}
+
+// ═══════════════════════════════ PATIENT TABLE ═══════════════════════════════
+
+function riskColor(r) {
+  return { critical:'#ff5757', high:'#ffb347', moderate:'#4f8cff', low:'#3fcf8e' }[r] || '#888';
+}
+
+function riskLabel(r) { return r.charAt(0).toUpperCase()+r.slice(1); }
+
+function renderPatientTable(filter='all') {
+  const tbody = document.getElementById('patient-tbody');
+  const rows = PATIENTS
+    .filter(p => filter==='all' || p.risk===filter)
+    .sort((a,b) => b.prob - a.prob)
+    .slice(0, 8);
+
+  tbody.innerHTML = rows.map(p => {
+    const c = riskColor(p.risk);
+    const hrClass = p.hr > 110 ? 'abnormal' : p.hr > 95 ? 'warn' : 'ok';
+    const tempClass = p.temp > 38.5 ? 'abnormal' : p.temp > 38 ? 'warn' : 'ok';
+    const mapClass = p.map < 65 ? 'abnormal' : p.map < 72 ? 'warn' : 'ok';
+    return `<tr onclick="viewPatient('${p.id}')" style="cursor:pointer;">
+      <td style="font-weight:500; color:var(--text);">${p.name}<br><span style="font-size:10px; color:var(--text3);">${p.id} · ${p.ward}</span></td>
+      <td><span class="risk-badge ${p.risk}">${riskLabel(p.risk)}</span></td>
+      <td>
+        <div class="score-bar">
+          <div class="score-track"><div class="score-fill" style="width:${p.prob}%; background:${c};"></div></div>
+          <span class="score-num" style="color:${c};">${p.prob}%</span>
+        </div>
+      </td>
+      <td><span class="vital ${hrClass}">${p.hr}</span></td>
+      <td><span class="vital ${tempClass}">${p.temp}°</span></td>
+      <td><span class="vital ${mapClass}">${p.map}</span></td>
+      <td><button class="action-btn" onclick="event.stopPropagation();viewPatient('${p.id}')">View →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderFullTable() {
+  const tbody = document.getElementById('full-patient-tbody');
+  tbody.innerHTML = PATIENTS.sort((a,b)=>b.prob-a.prob).map(p => {
+    const c = riskColor(p.risk);
+    return `<tr onclick="viewPatientDetail('${p.id}')" style="cursor:pointer;">
+      <td style="font-family:var(--font-mono); font-size:11px; color:var(--text3);">${p.id}</td>
+      <td style="font-weight:500; color:var(--text);">${p.name}</td>
+      <td>${p.age}</td>
+      <td style="font-size:11px;">${p.ward}</td>
+      <td style="font-size:12px; color:var(--text2);">${p.dx}</td>
+      <td>
+        <div class="score-bar">
+          <div class="score-track"><div class="score-fill" style="width:${p.prob}%; background:${c};"></div></div>
+          <span class="score-num" style="color:${c}; font-size:11px;">${p.prob}%</span>
+        </div>
+      </td>
+      <td style="text-align:center;"><span style="font-family:var(--font-mono); font-weight:600; color:${p.qsofa >= 2 ? 'var(--danger)' : p.qsofa === 1 ? 'var(--warning)' : 'var(--success)'};">${p.qsofa}</span></td>
+      <td style="font-size:11px; color:var(--text3);">${p.updated}</td>
+      <td><button class="action-btn" onclick="event.stopPropagation();viewPatientDetail('${p.id}')">Details →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable(filter, btn) {
+  document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderPatientTable(filter);
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alert-list');
+  list.innerHTML = ALERTS.map(a => {
+    const c = a.level === 'critical' ? 'var(--danger)' : 'var(--warning)';
+    const bg = a.level === 'critical' ? 'rgba(255,87,87,0.08)' : 'rgba(255,179,71,0.08)';
+    return `<div style="background:${bg}; border:1px solid ${c}30; border-radius:8px; padding:10px 12px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span style="font-size:10px; font-family:var(--font-mono); color:${c};">${a.time}</span>
+        <span style="font-size:11px; font-weight:600; color:${c};">${a.level.toUpperCase()}</span>
+      </div>
+      <div style="font-size:12px; font-weight:500; color:var(--text); margin-bottom:2px;">${a.patient}</div>
+      <div style="font-size:11px; color:var(--text3);">${a.msg}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderFullAlerts() {
+  const list = document.getElementById('alerts-full-list');
+  list.innerHTML = ALERTS.concat(ALERTS.map((a,i)=>({...a, time:'0'+(5+i)+':'+Math.floor(Math.random()*60).toString().padStart(2,'0'), level:'high'}))).map(a => {
+    const c = a.level === 'critical' ? 'var(--danger)' : 'var(--warning)';
+    const bg = a.level === 'critical' ? 'rgba(255,87,87,0.08)' : 'rgba(255,179,71,0.06)';
+    return `<div style="background:${bg}; border-left:3px solid ${c}; border-radius:4px 8px 8px 4px; padding:12px 14px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="min-width:42px; font-size:11px; font-family:var(--font-mono); color:var(--text3);">${a.time}</div>
+      <div style="flex:1;">
+        <div style="font-size:12px; font-weight:600; color:${c}; margin-bottom:2px;">${a.level.toUpperCase()} — ${a.patient}</div>
+        <div style="font-size:12px; color:var(--text2);">${a.msg}</div>
+      </div>
+      <button class="action-btn" style="flex-shrink:0;">Ack</button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════ PATIENT DETAIL ═══════════════════════════════
+
+let detailChart = null;
+
+function viewPatient(id) {
+  showPage('patients');
+  viewPatientDetail(id);
+}
+
+function viewPatientDetail(id) {
+  const p = PATIENTS.find(x => x.id === id);
+  if(!p) return;
+
+  const card = document.getElementById('patient-detail-card');
+  card.style.display = 'block';
+
+  document.getElementById('detail-header').innerHTML = `
+    <div>
+      <span class="card-title">${p.name}</span>
+      <span style="font-size:11px; color:var(--text3); margin-left:10px;">${p.id} · Age ${p.age} · ${p.ward} · ${p.dx}</span>
+    </div>
+    <span class="risk-badge ${p.risk}" style="margin-left:auto;">${riskLabel(p.risk)} — ${p.prob}%</span>
+    <button class="action-btn" onclick="closeDetail()" style="margin-left:12px;">Close ✕</button>
+  `;
+
+  const vt = (label, val, unit, cls) => `
+    <div class="vital-tile ${cls}">
+      <div class="vital-tile-label">${label}</div>
+      <div class="vital-tile-value">${val}<span class="vital-tile-unit"> ${unit}</span></div>
+    </div>`;
+
+  document.getElementById('detail-vitals').innerHTML =
+    vt('Heart Rate', p.hr, 'bpm', p.hr>110?'danger':p.hr>95?'warning':'ok') +
+    vt('Temperature', p.temp, '°C', p.temp>38.5?'danger':p.temp>38?'warning':'ok') +
+    vt('MAP', p.map, 'mmHg', p.map<65?'danger':p.map<72?'warning':'ok') +
+    vt('Lactate', p.lactate, 'mmol/L', p.lactate>4?'danger':p.lactate>2?'warning':'ok') +
+    vt('Creatinine', p.creat, 'mg/dL', p.creat>2?'danger':p.creat>1.5?'warning':'ok') +
+    vt('Platelets', p.plt, '×10³', p.plt<100?'danger':p.plt<150?'warning':'ok') +
+    vt('WBC', p.wbc, '×10³', p.wbc>14?'danger':p.wbc>11?'warning':'ok') +
+    vt('GCS', p.gcs, '/15', p.gcs<13?'danger':p.gcs<15?'warning':'ok') +
+    vt('qSOFA', p.qsofa, '/3', p.qsofa>=2?'danger':p.qsofa===1?'warning':'ok');
+
+  // Micro trend chart
+  if(detailChart) { detailChart.destroy(); detailChart = null; }
+  const ctx = document.getElementById('detailChart').getContext('2d');
+  const hrs = ['6h','5h','4h','3h','2h','1h','Now'];
+  const base = p.hr;
+  const hrTrend = hrs.map((_,i) => Math.round(base - (p.risk==='critical'?8:4) + i*(p.risk==='critical'?2.5:1) + (Math.random()-0.4)*4));
+  detailChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hrs,
+      datasets: [{
+        label: 'HR',
+        data: hrTrend,
+        borderColor: riskColor(p.risk),
+        backgroundColor: riskColor(p.risk)+'22',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#4d6899', font:{size:10} } },
+        y: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#4d6899', font:{size:10} } }
+      }
+    }
+  });
+
+  card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function closeDetail() {
+  document.getElementById('patient-detail-card').style.display = 'none';
+}
+
+// ═══════════════════════════════ CHARTS ═══════════════════════════════
+
+function initDashboardChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const labels = Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`);
+  const data = [1,1,2,1,0,1,2,3,4,3,5,4,6,5,4,6,7,8,6,7,9,8,7,8];
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Risk alerts',
+        data,
+        borderColor: '#4f8cff',
+        backgroundColor: 'rgba(79,140,255,0.1)',
+        fill: true, tension: 0.4, pointRadius: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899', font:{size:9}, maxTicksLimit:8} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899', font:{size:9}}, beginAtZero:true }
+      }
+    }
+  });
+}
+
+function initAnalyticsCharts() {
+  // Risk Distribution Doughnut
+  new Chart(document.getElementById('riskDistChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Critical (>80%)', 'High (50-80%)', 'Moderate (20-50%)', 'Low (<20%)'],
+      datasets: [{ data:[3,8,14,22], backgroundColor:['#ff5757','#ffb347','#4f8cff','#3fcf8e'], borderWidth:0, hoverOffset:4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'bottom', labels:{ color:'#8fa4cc', font:{size:11}, padding:12 } } }
+    }
+  });
+
+  // Weekly detections
+  new Chart(document.getElementById('weeklyChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [
+        { label:'Sepsis confirmed', data:[4,6,3,7,5,4,6], backgroundColor:'#ff575788' },
+        { label:'Early flagged', data:[7,9,6,11,9,7,9], backgroundColor:'#4f8cff88' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels:{color:'#8fa4cc', font:{size:11}} } },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899'}, stacked:false },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899'}, beginAtZero:true }
+      }
+    }
+  });
+
+  // Lead time histogram
+  new Chart(document.getElementById('leadTimeChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['0-1h','1-2h','2-3h','3-5h','5-8h','8h+'],
+      datasets: [{ label:'Cases', data:[3,8,14,22,18,7], backgroundColor:'#7eb8ff88', borderColor:'#4f8cff', borderWidth:1 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899', font:{size:10}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899'}, beginAtZero:true }
+      }
+    }
+  });
+
+  // Accuracy over time
+  new Chart(document.getElementById('accuracyChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [
+        { label:'Sensitivity', data:[82,84,85,87,88,89,90,91,92,93,94,94], borderColor:'#3fcf8e', tension:0.4, pointRadius:2 },
+        { label:'Specificity', data:[85,86,86,87,88,89,89,90,90,91,91,91], borderColor:'#4f8cff', tension:0.4, pointRadius:2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels:{color:'#8fa4cc', font:{size:11}} } },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899', font:{size:10}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d6899'}, min:75, max:100 }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════ SOFA CALCULATOR ═══════════════════════════════
+
+function calcSOFA() {
+  const pao2 = parseFloat(document.getElementById('sf-pao2').value) || 0;
+  const plt  = parseFloat(document.getElementById('sf-plt').value) || 0;
+  const bili = parseFloat(document.getElementById('sf-bili').value) || 0;
+  const map  = parseFloat(document.getElementById('sf-map').value) || 0;
+  const gcs  = parseFloat(document.getElementById('sf-gcs').value) || 15;
+  const creat= parseFloat(document.getElementById('sf-creat').value) || 0;
+
+  // SOFA scoring per organ system
+  let resp = pao2>=400?0:pao2>=300?1:pao2>=200?2:pao2>=100?3:4;
+  let coag = plt>=150?0:plt>=100?1:plt>=50?2:plt>=20?3:4;
+  let liver= bili<1.2?0:bili<2?1:bili<6?2:bili<12?3:4;
+  let cv   = map>=70?0:map>=65?1:2;
+  let neuro= gcs===15?0:gcs>=13?1:gcs>=10?2:gcs>=6?3:4;
+  let renal= creat<1.2?0:creat<2?1:creat<3.5?2:creat<5?3:4;
+
+  const total = resp+coag+liver+cv+neuro+renal;
+  const mortality = total<=1?'<10%':total<=4?'15–20%':total<=8?'40–50%':total<=11?'50–60%':'>80%';
+  const riskClass = total<=1?'ok':total<=4?'warning':'danger';
+  const riskWord = total<=1?'Low':'var(--warning)';
+
+  document.getElementById('sofa-result').innerHTML = `
+    <div style="display:flex; align-items:center; gap:20px; width:100%;">
+      <div style="text-align:center; min-width:100px;">
+        <div style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px;">SOFA Score</div>
+        <div class="sofa-score-num ${total>=8?'danger':total>=4?'warning':'success'}" style="color:${total>=8?'var(--danger)':total>=4?'var(--warning)':'var(--success)'};">${total}</div>
+        <div style="font-size:10px; color:var(--text3);">/ 24 max</div>
+      </div>
+      <div style="flex:1;">
+        <table style="width:100%; font-size:12px; border-collapse:collapse;">
+          <tr><td style="color:var(--text3); padding:3px 0;">Respiratory</td><td style="font-family:var(--font-mono); text-align:right; color:${resp>=2?'var(--danger)':'var(--text)'};">${resp}/4</td></tr>
+          <tr><td style="color:var(--text3); padding:3px 0;">Coagulation</td><td style="font-family:var(--font-mono); text-align:right; color:${coag>=2?'var(--danger)':'var(--text)'};">${coag}/4</td></tr>
+          <tr><td style="color:var(--text3); padding:3px 0;">Liver</td><td style="font-family:var(--font-mono); text-align:right; color:${liver>=2?'var(--danger)':'var(--text)'};">${liver}/4</td></tr>
+          <tr><td style="color:var(--text3); padding:3px 0;">Cardiovascular</td><td style="font-family:var(--font-mono); text-align:right; color:${cv>=2?'var(--danger)':'var(--text)'};">${cv}/4</td></tr>
+          <tr><td style="color:var(--text3); padding:3px 0;">Neurological</td><td style="font-family:var(--font-mono); text-align:right; color:${neuro>=2?'var(--danger)':'var(--text)'};">${neuro}/4</td></tr>
+          <tr><td style="color:var(--text3); padding:3px 0;">Renal</td><td style="font-family:var(--font-mono); text-align:right; color:${renal>=2?'var(--danger)':'var(--text)'};">${renal}/4</td></tr>
+        </table>
+      </div>
+      <div style="text-align:center; min-width:90px;">
+        <div style="font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px;">Est. Mortality</div>
+        <div style="font-size:18px; font-weight:600; color:${total>=8?'var(--danger)':total>=4?'var(--warning)':'var(--success)'};">${mortality}</div>
+      </div>
+    </div>
+    <div style="width:100%; background:${total>=8?'rgba(255,87,87,0.1)':total>=4?'rgba(255,179,71,0.1)':'rgba(63,207,142,0.1)'}; border:1px solid ${total>=8?'rgba(255,87,87,0.3)':total>=4?'rgba(255,179,71,0.3)':'rgba(63,207,142,0.3)'}; border-radius:8px; padding:12px 14px; font-size:12px; color:var(--text2);">
+      <strong style="color:${total>=8?'var(--danger)':total>=4?'var(--warning)':'var(--success)'};">AI Interpretation:</strong> 
+      ${total>=8 ? 'SOFA score '+total+' indicates severe multi-organ dysfunction. Predicted mortality >50%. Consider ICU escalation, vasopressor support if MAP < 65, and urgent specialist review. Meets Sepsis-3 definition of septic shock if vasopressors required.' 
+        : total>=4 ? 'SOFA score '+total+' indicates significant organ dysfunction. Meets Sepsis-3 criteria. Initiate Hour-1 Bundle: blood cultures, broad-spectrum antibiotics, IV fluids (30 mL/kg), lactate measurement, vasopressors if MAP < 65.'
+        : 'SOFA score '+total+' — low organ dysfunction. Monitor closely. Consider qSOFA screening and repeat assessment in 2–4 hours if clinical concern persists.'}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════ AI ASSISTANT ═══════════════════════════════
+
+const SYSTEM_PROMPT = `You are an AI clinical assistant embedded in SepsisGuard, a sepsis early warning system for hospital wards. You help ICU physicians interpret vitals, understand sepsis risk scores, and recall evidence-based protocols.
+
+Current patient context (demo mode):
+- P004 Sarah Chen, 42F: HR 128, Temp 38.9°C, MAP 62, Lactate 4.2, Creat 2.8, Plt 88, GCS 13, qSOFA 3 — CRITICAL (94%)
+- P001 James Okonkwo, 67M: HR 118, Temp 38.7°C, MAP 65, Lactate 3.1 — CRITICAL (88%)
+- P007 Carlos Mendez, 55M: HR 115, Temp 38.5°C, MAP 68, Lactate 3.4 — CRITICAL (82%)
+- P009 David Nguyen, 72M: HR 108, MAP 70, Lactate 2.6, Creat 3.1 — HIGH (76%)
+
+Rules:
+- Be concise and clinically precise
+- Always recommend professional clinical judgment
+- Cite Surviving Sepsis Campaign or NICE guidelines when relevant
+- Flag if any question requires immediate escalation
+- Use medical abbreviations where appropriate
+- You are in demo mode — no real patient data`;
+
+async function sendAI() {
+  const input = document.getElementById('ai-input');
+  const text = input.value.trim();
+  if(!text) return;
+
+  const messages = document.getElementById('ai-messages');
+  const btn = document.getElementById('ai-send-btn');
+
+  // Add user message
+  messages.innerHTML += `
+    <div class="ai-msg user">
+      <div class="msg-avatar user">DR</div>
+      <div class="msg-bubble user">${text}</div>
+    </div>`;
+  input.value = '';
+  btn.disabled = true;
+
+  // Typing indicator
+  const typingId = 'typing-' + Date.now();
+  messages.innerHTML += `
+    <div class="ai-msg" id="${typingId}">
+      <div class="msg-avatar ai">AI</div>
+      <div class="msg-bubble ai"><div class="typing"><span></span><span></span><span></span></div></div>
+    </div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.content && data.content[0] ? data.content[0].text : 'Unable to get a response. Please try again.';
+
+    document.getElementById(typingId).remove();
+    messages.innerHTML += `
+      <div class="ai-msg">
+        <div class="msg-avatar ai">AI</div>
+        <div class="msg-bubble ai">${reply.replace(/\n/g,'<br>')}</div>
+      </div>`;
+  } catch(e) {
+    document.getElementById(typingId).remove();
+    messages.innerHTML += `
+      <div class="ai-msg">
+        <div class="msg-avatar ai">AI</div>
+        <div class="msg-bubble ai" style="color:var(--warning);">Unable to reach AI service. Please check your connection. (Demo mode: the AI assistant requires API access.)</div>
+      </div>`;
+  }
+
+  btn.disabled = false;
+  messages.scrollTop = messages.scrollHeight;
+}
+
+// ═══════════════════════════════ INIT ═══════════════════════════════
+
+renderPatientTable('all');
+renderFullTable();
+renderAlerts();
+renderFullAlerts();
+initDashboardChart();
+chartsInit.dashboard = true;
+
+// Live clock
+setInterval(() => {
+  document.getElementById('alert-time').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+}, 30000);
+</script>
+</body>
+</html>
